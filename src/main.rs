@@ -10,7 +10,10 @@ fn main() {
             println!("{}", arg);
             let notebook = Notebook::load(&arg).unwrap();
 
-            println!("Notebook {}", notebook.name());
+            println!("Notebook {} with pages:", notebook.name());
+            for page in notebook.pages {
+                println!("  Page {}", page.id);
+            }
         }
     };
 }

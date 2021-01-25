@@ -25,9 +25,15 @@ struct Content {
 }
 
 #[derive(Debug)]
+pub struct Page {
+    pub id: String,
+}
+
+#[derive(Debug)]
 pub struct Notebook {
     metadata: Metadata,
     content: Content,
+    pub pages: Vec<Page>,
 }
 
 impl Notebook {
@@ -35,7 +41,17 @@ impl Notebook {
         let metadata: Metadata = parse(path, ".metadata")?;
         let content: Content = parse(path, ".content")?;
 
-        Ok(Notebook { metadata, content })
+        let pages = content
+            .pages
+            .iter()
+            .map(|id| Page { id: id.to_owned() })
+            .collect();
+
+        Ok(Notebook {
+            metadata,
+            content,
+            pages,
+        })
     }
 
     pub fn name(&self) -> &str {
