@@ -51,6 +51,7 @@ impl std::convert::From<std::num::ParseIntError> for ParseError {
 #[derive(Debug)]
 pub struct LineFile {
     version: i32,
+    num_layers: u32,
 }
 
 impl LineFile {
@@ -58,13 +59,20 @@ impl LineFile {
         let file = File::open(filename)?;
 
         let reader = BufReader::new(file);
-        let mut bytes = reader.bytes();
+        let bytes = &mut reader.bytes();
 
-        parse_header(&mut bytes)?;
+        parse_header(bytes)?;
 
-        let version = parse_version(&mut bytes)?;
+        let version = parse_version(bytes)?;
 
-        Ok(LineFile { version })
+        parse_string(bytes, 10)?; // Chomp extra bytes
+
+        let num_layers = parse_u32(bytes)?;
+
+        Ok(LineFile {
+            version,
+            num_layers,
+        })
     }
 }
 
@@ -95,6 +103,24 @@ fn parse_string(bytes: &mut Bytes<BufReader<File>>, count: i32) -> Result<String
     let string = str::from_utf8(&buffer)?;
 
     Ok(string.to_owned())
+}
+
+fn parse_u32(bytes: &mut Bytes<BufReader<File>>) -> Result<u32, ParseError> {
+    let mut buffer: [u32; 4] = [0; 4];
+
+    for i in 0..4 {
+        match bytes.next() {
+            None => {
+                return Err(ParseError::new("Unexpected end of file"));
+            }
+            Some(byte) => {
+                buffer[i] = byte? as u32;
+            }
+        }
+    }
+
+    // Little-endian
+    Ok(buffer[0] + (buffer[1] << 8) + (buffer[2] << 16) + (buffer[3] << 24))
 }
 
 fn parse_version(bytes: &mut Bytes<BufReader<File>>) -> Result<i32, ParseError> {
