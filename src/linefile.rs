@@ -1,3 +1,5 @@
+// See https://remarkablewiki.com/tech/filesystem
+
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
@@ -48,10 +50,103 @@ impl std::convert::From<std::num::ParseIntError> for ParseError {
     }
 }
 
+trait ParseFrom
+where
+    Self: std::marker::Sized,
+{
+    // Read the number of items, then parse a vector
+    fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Self, ParseError>;
+}
+
 #[derive(Debug)]
 pub struct LineFile {
     version: i32,
-    num_layers: u32,
+    layers: Vec<Layer>,
+}
+
+#[derive(Debug)]
+struct Layer {
+    strokes: Vec<Stroke>,
+}
+
+impl ParseFrom for Layer {
+    fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Layer, ParseError> {
+        let strokes = parse_multiple(version, bytes)?;
+
+        Ok(Layer { strokes })
+    }
+}
+
+#[derive(Debug)]
+struct Stroke {
+    pen: u32, // TODO: make enum
+    color: u32,
+    width: f32,
+    segments: Vec<Segment>,
+}
+
+impl ParseFrom for Stroke {
+    fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Stroke, ParseError> {
+        let pen = parse_u32(bytes)?;
+        let color = parse_u32(bytes)?;
+        parse_string(bytes, 4)?; // Discard unknown bytes
+        let width = parse_f32(bytes)?;
+        if version >= 5 {
+            parse_string(bytes, 4)?; // Discard unknown bytes
+        }
+        let segments = parse_multiple(version, bytes)?;
+
+        Ok(Stroke {
+            pen,
+            color,
+            width,
+            segments,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct Segment {
+    x: f32,
+    y: f32,
+    pressure: f32,
+    tilt: f32,  // or pen rotation?
+    speed: f32, // or pen rotation?
+}
+
+impl ParseFrom for Segment {
+    fn parse_from(
+        _version: i32,
+        bytes: &mut Bytes<BufReader<File>>,
+    ) -> Result<Segment, ParseError> {
+        let x = parse_f32(bytes)?;
+        let y = parse_f32(bytes)?;
+        let pressure = parse_f32(bytes)?;
+        let tilt = parse_f32(bytes)?;
+        let speed = parse_f32(bytes)?;
+
+        Ok(Segment {
+            x,
+            y,
+            pressure,
+            tilt,
+            speed,
+        })
+    }
+}
+
+fn parse_multiple<T: ParseFrom>(
+    version: i32,
+    bytes: &mut Bytes<BufReader<File>>,
+) -> Result<Vec<T>, ParseError> {
+    let count = parse_u32(bytes)?;
+    let mut items: Vec<T> = vec![];
+    for _ in 0..count {
+        let item = T::parse_from(version, bytes)?;
+        items.push(item);
+    }
+
+    Ok(items)
 }
 
 impl LineFile {
@@ -67,12 +162,9 @@ impl LineFile {
 
         parse_string(bytes, 10)?; // Chomp extra bytes
 
-        let num_layers = parse_u32(bytes)?;
+        let layers: Vec<Layer> = parse_multiple(version, bytes)?;
 
-        Ok(LineFile {
-            version,
-            num_layers,
-        })
+        Ok(LineFile { version, layers })
     }
 }
 
@@ -121,6 +213,23 @@ fn parse_u32(bytes: &mut Bytes<BufReader<File>>) -> Result<u32, ParseError> {
 
     // Little-endian
     Ok(buffer[0] + (buffer[1] << 8) + (buffer[2] << 16) + (buffer[3] << 24))
+}
+
+fn parse_f32(bytes: &mut Bytes<BufReader<File>>) -> Result<f32, ParseError> {
+    let mut buffer: [u8; 4] = [0; 4];
+
+    for i in 0..4 {
+        match bytes.next() {
+            None => {
+                return Err(ParseError::new("Unexpected end of file"));
+            }
+            Some(byte) => {
+                buffer[i] = byte?;
+            }
+        }
+    }
+
+    Ok(f32::from_le_bytes(buffer))
 }
 
 fn parse_version(bytes: &mut Bytes<BufReader<File>>) -> Result<i32, ParseError> {
