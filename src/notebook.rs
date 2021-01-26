@@ -2,6 +2,8 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::error::Error;
 
+use crate::page::Page;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Metadata {
@@ -19,14 +21,8 @@ struct Metadata {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct Content {
     pages: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct Page {
-    pub id: String,
 }
 
 #[derive(Debug)]
@@ -41,11 +37,17 @@ impl Notebook {
         let metadata: Metadata = parse(path, ".metadata")?;
         let content: Content = parse(path, ".content")?;
 
-        let pages = content
-            .pages
-            .iter()
-            .map(|id| Page { id: id.to_owned() })
-            .collect();
+        let mut pages: Vec<Page> = vec![];
+        for page_id in &content.pages {
+            match Page::load(path, page_id) {
+                Err(e) => {
+                    return Err(e);
+                }
+                Ok(page) => {
+                    pages.push(page);
+                }
+            }
+        }
 
         Ok(Notebook {
             metadata,
@@ -59,7 +61,7 @@ impl Notebook {
     }
 }
 
-fn parse<T: DeserializeOwned>(path: &str, postfix: &str) -> Result<T, Box<dyn Error>> {
+pub fn parse<T: DeserializeOwned>(path: &str, postfix: &str) -> Result<T, Box<dyn Error>> {
     let full_path = format!("{}{}", path, postfix);
     let json_str = std::fs::read_to_string(full_path)?;
     let content: T = serde_json::from_str(&json_str)?;

@@ -1,4 +1,5 @@
 mod notebook;
+mod page;
 use notebook::Notebook;
 
 fn main() {
@@ -10,9 +11,9 @@ fn main() {
             println!("{}", arg);
             let notebook = Notebook::load(&arg).unwrap();
 
-            println!("Notebook {} with pages:", notebook.name());
+            println!("Notebook '{}' with pages:", notebook.name());
             for page in notebook.pages {
-                println!("  Page {}", page.id);
+                println!("  {:?}", page);
             }
         }
     };
