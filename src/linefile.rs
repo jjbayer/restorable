@@ -71,6 +71,7 @@ struct Layer {
 
 impl ParseFrom for Layer {
     fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Layer, ParseError> {
+        println!("Parse layer");
         let strokes = parse_multiple(version, bytes)?;
 
         Ok(Layer { strokes })
@@ -87,12 +88,13 @@ struct Stroke {
 
 impl ParseFrom for Stroke {
     fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Stroke, ParseError> {
+        println!("Parse stroke");
         let pen = parse_u32(bytes)?;
         let color = parse_u32(bytes)?;
-        parse_string(bytes, 4)?; // Discard unknown bytes
+        discard_bytes(bytes, 4)?;
         let width = parse_f32(bytes)?;
         if version >= 5 {
-            parse_string(bytes, 4)?; // Discard unknown bytes
+            discard_bytes(bytes, 4)?;
         }
         let segments = parse_multiple(version, bytes)?;
 
@@ -140,8 +142,9 @@ fn parse_multiple<T: ParseFrom>(
     bytes: &mut Bytes<BufReader<File>>,
 ) -> Result<Vec<T>, ParseError> {
     let count = parse_u32(bytes)?;
+    println!("Parse {} items", count);
     let mut items: Vec<T> = vec![];
-    for _ in 0..count {
+    for i in 0..count {
         let item = T::parse_from(version, bytes)?;
         items.push(item);
     }
@@ -177,13 +180,32 @@ fn parse_header(bytes: &mut Bytes<BufReader<File>>) -> Result<(), ParseError> {
     }
 }
 
+fn discard_bytes(bytes: &mut Bytes<BufReader<File>>, count: i32) -> Result<(), ParseError> {
+    for _ in 0..count {
+        match bytes.next() {
+            None => {
+                return Err(ParseError::new(&format!(
+                    "Unexpected end of file while discarding {} bytes",
+                    count
+                )));
+            }
+            Some(_) => {}
+        }
+    }
+
+    Ok(())
+}
+
 fn parse_string(bytes: &mut Bytes<BufReader<File>>, count: i32) -> Result<String, ParseError> {
     let mut buffer: Vec<u8> = vec![];
 
     for _ in 0..count {
         match bytes.next() {
             None => {
-                return Err(ParseError::new("Unexpected end of file"));
+                return Err(ParseError::new(&format!(
+                    "Unexpected end of file while parsing string of length {}",
+                    count
+                )));
             }
             Some(byte) => {
                 let byte = byte?;
@@ -203,7 +225,7 @@ fn parse_u32(bytes: &mut Bytes<BufReader<File>>) -> Result<u32, ParseError> {
     for i in 0..4 {
         match bytes.next() {
             None => {
-                return Err(ParseError::new("Unexpected end of file"));
+                return Err(ParseError::new("Unexpected end of file while parsing u32"));
             }
             Some(byte) => {
                 buffer[i] = byte? as u32;
@@ -221,7 +243,7 @@ fn parse_f32(bytes: &mut Bytes<BufReader<File>>) -> Result<f32, ParseError> {
     for i in 0..4 {
         match bytes.next() {
             None => {
-                return Err(ParseError::new("Unexpected end of file"));
+                return Err(ParseError::new("Unexpected end of file while parsing f32"));
             }
             Some(byte) => {
                 buffer[i] = byte?;
