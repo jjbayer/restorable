@@ -1,5 +1,7 @@
+mod linefile;
 mod notebook;
 mod page;
+
 use notebook::Notebook;
 
 fn main() {
