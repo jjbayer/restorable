@@ -5,7 +5,8 @@ use svg::node::element::path::Data;
 use svg::node::element::{Group, Path};
 
 pub fn render_notebook(notebook: Notebook) -> svg::Document {
-    let mut document = svg::Document::new();
+    // For size, see https://remarkablewiki.com/tech/filesystem
+    let mut document = svg::Document::new().set("viewBox", (0, 0, 1404, 1872));
 
     for page in notebook.pages {
         document = document.add(render_page(page));
@@ -48,7 +49,7 @@ pub fn render_stroke(stroke: Stroke) -> Path {
 
     Path::new()
         .set("fill", "none")
-        .set("stroke", "black") // TODO: map
+        .set("stroke", "black")
         .set("stroke-width", stroke.width)
         .set("d", data)
 }
