@@ -71,7 +71,6 @@ struct Layer {
 
 impl ParseFrom for Layer {
     fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Layer, ParseError> {
-        println!("Parse layer");
         let strokes = parse_multiple(version, bytes)?;
 
         Ok(Layer { strokes })
@@ -88,7 +87,6 @@ struct Stroke {
 
 impl ParseFrom for Stroke {
     fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Stroke, ParseError> {
-        println!("Parse stroke");
         let pen = parse_u32(bytes)?;
         let color = parse_u32(bytes)?;
         discard_bytes(bytes, 4)?;
@@ -109,11 +107,13 @@ impl ParseFrom for Stroke {
 
 #[derive(Debug)]
 struct Segment {
+    // According to https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html
     x: f32,
     y: f32,
+    speed: f32,
+    direction: f32,
+    width: f32,
     pressure: f32,
-    tilt: f32,  // or pen rotation?
-    speed: f32, // or pen rotation?
 }
 
 impl ParseFrom for Segment {
@@ -123,17 +123,21 @@ impl ParseFrom for Segment {
     ) -> Result<Segment, ParseError> {
         let x = parse_f32(bytes)?;
         let y = parse_f32(bytes)?;
-        let pressure = parse_f32(bytes)?;
-        let tilt = parse_f32(bytes)?;
         let speed = parse_f32(bytes)?;
+        let direction = parse_f32(bytes)?;
+        let width = parse_f32(bytes)?;
+        let pressure = parse_f32(bytes)?;
 
-        Ok(Segment {
+        let segment = Segment {
             x,
             y,
-            pressure,
-            tilt,
             speed,
-        })
+            direction,
+            width,
+            pressure,
+        };
+
+        Ok(segment)
     }
 }
 
@@ -142,9 +146,8 @@ fn parse_multiple<T: ParseFrom>(
     bytes: &mut Bytes<BufReader<File>>,
 ) -> Result<Vec<T>, ParseError> {
     let count = parse_u32(bytes)?;
-    println!("Parse {} items", count);
     let mut items: Vec<T> = vec![];
-    for i in 0..count {
+    for _ in 0..count {
         let item = T::parse_from(version, bytes)?;
         items.push(item);
     }
