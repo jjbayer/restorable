@@ -79,9 +79,9 @@ impl ParseFrom for Layer {
 
 #[derive(Debug)]
 pub struct Stroke {
-    pen: u32, // TODO: make enum
-    color: u32,
-    width: f32,
+    pub pen: u32, // TODO: make enum
+    pub color: u32,
+    pub width: f32,
     pub segments: Vec<Segment>,
 }
 
