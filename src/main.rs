@@ -7,16 +7,15 @@ use notebook::Notebook;
 use render::render_notebook;
 
 fn main() {
-    let mut cli_args = std::env::args();
-    cli_args.next();
-    match cli_args.next() {
-        None => {}
-        Some(arg) => {
-            let notebook = Notebook::load(&arg).unwrap();
+    let input_path = std::env::args().nth(1).expect("no input path given");
+    let output_path = std::env::args().nth(2).expect("no output path given");
+    let notebook = Notebook::load(&input_path).expect("Failed to parse notebook");
 
-            let document = render_notebook(notebook);
+    println!(
+        "Exporting notebook '{}' to {}",
+        notebook.name(),
+        output_path
+    );
 
-            svg::write(std::io::stdout(), &document).unwrap();
-        }
-    };
+    render_notebook(notebook, &output_path).expect("Failed to render notebook");
 }

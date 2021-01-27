@@ -1,55 +1,58 @@
 use crate::linefile::{Layer, Stroke};
 use crate::notebook::Notebook;
 use crate::page::Page;
-use svg::node::element::path::Data;
-use svg::node::element::{Group, Path};
+use pdf_canvas::{graphicsstate::Matrix, Canvas, Pdf};
 
-pub fn render_notebook(notebook: Notebook) -> svg::Document {
-    // For size, see https://remarkablewiki.com/tech/filesystem
-    let mut document = svg::Document::new().set("viewBox", (0, 0, 1404, 1872));
+// For size, see https://remarkablewiki.com/tech/filesystem
+const DOCUMENT_WIDTH: f32 = 1404.0;
+const DOCUMENT_HEIGHT: f32 = 1872.0;
+
+pub fn render_notebook(notebook: Notebook, output_path: &str) -> Result<(), std::io::Error> {
+    let mut document = Pdf::create(output_path)?;
 
     for page in notebook.pages {
-        document = document.add(render_page(page));
+        render_page(page, &mut document)?;
     }
 
-    document
+    document.finish()
 }
 
-pub fn render_page(page: Page) -> Group {
-    let mut group = Group::new();
+pub fn render_page(page: Page, document: &mut Pdf) -> Result<(), std::io::Error> {
+    document.render_page(DOCUMENT_WIDTH, DOCUMENT_HEIGHT, |canvas| {
+        // Flip y coordinates:
+        canvas.concat(Matrix::scale(1.0, -1.0))?;
+        canvas.concat(Matrix::translate(0.0, -DOCUMENT_HEIGHT))?;
 
-    for layer in page.linefile.layers {
-        group = group.add(render_layer(layer));
-    }
+        for layer in page.linefile.layers {
+            render_layer(layer, canvas)?;
+        }
 
-    group
+        Ok(())
+    })
 }
 
-pub fn render_layer(layer: Layer) -> Group {
-    let mut group = Group::new();
-
+pub fn render_layer(layer: Layer, canvas: &mut Canvas) -> Result<(), std::io::Error> {
     for stroke in layer.strokes {
-        group = group.add(render_stroke(stroke));
+        render_stroke(stroke, canvas)?;
     }
 
-    group
+    Ok(())
 }
 
-pub fn render_stroke(stroke: Stroke) -> Path {
-    let mut data = Data::new();
+pub fn render_stroke(stroke: Stroke, canvas: &mut Canvas) -> Result<(), std::io::Error> {
+    // TODO: set fill color, pressure, etc.
+    canvas.set_line_width(stroke.width)?;
 
     for (i, segment) in stroke.segments.iter().enumerate() {
-        let coords = (segment.x, segment.y);
+        let (x, y) = (segment.x, segment.y);
         if i == 0 {
-            data = data.move_to(coords);
+            canvas.move_to(x, y)?;
         } else {
-            data = data.line_to(coords);
+            canvas.line_to(x, y)?;
         }
     }
 
-    Path::new()
-        .set("fill", "none")
-        .set("stroke", "black")
-        .set("stroke-width", stroke.width)
-        .set("d", data)
+    canvas.stroke()?;
+
+    Ok(())
 }
