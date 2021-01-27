@@ -5,8 +5,8 @@ use std::error::Error;
 
 #[derive(Debug)]
 pub struct Page {
-    metadata: Metadata,
-    linefile: LineFile,
+    pub metadata: Metadata,
+    pub linefile: LineFile,
 }
 
 impl Page {
@@ -29,7 +29,7 @@ impl Page {
 }
 
 #[derive(Debug, Deserialize)]
-struct Metadata {
+pub struct Metadata {
     layers: Vec<Layer>,
 }
 

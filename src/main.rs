@@ -1,8 +1,10 @@
 mod linefile;
 mod notebook;
 mod page;
+mod render;
 
 use notebook::Notebook;
+use render::render_notebook;
 
 fn main() {
     let mut cli_args = std::env::args();
@@ -10,13 +12,11 @@ fn main() {
     match cli_args.next() {
         None => {}
         Some(arg) => {
-            println!("{}", arg);
             let notebook = Notebook::load(&arg).unwrap();
 
-            println!("Notebook '{}' with pages:", notebook.name());
-            for page in notebook.pages {
-                println!("  {:?}", page);
-            }
+            let document = render_notebook(notebook);
+
+            svg::write(std::io::stdout(), &document).unwrap();
         }
     };
 }

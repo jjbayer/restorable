@@ -60,13 +60,13 @@ where
 
 #[derive(Debug)]
 pub struct LineFile {
-    version: i32,
-    layers: Vec<Layer>,
+    pub version: i32,
+    pub layers: Vec<Layer>,
 }
 
 #[derive(Debug)]
-struct Layer {
-    strokes: Vec<Stroke>,
+pub struct Layer {
+    pub strokes: Vec<Stroke>,
 }
 
 impl ParseFrom for Layer {
@@ -78,11 +78,11 @@ impl ParseFrom for Layer {
 }
 
 #[derive(Debug)]
-struct Stroke {
+pub struct Stroke {
     pen: u32, // TODO: make enum
     color: u32,
     width: f32,
-    segments: Vec<Segment>,
+    pub segments: Vec<Segment>,
 }
 
 impl ParseFrom for Stroke {
@@ -106,10 +106,10 @@ impl ParseFrom for Stroke {
 }
 
 #[derive(Debug)]
-struct Segment {
+pub struct Segment {
     // According to https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
     speed: f32,
     direction: f32,
     width: f32,
