@@ -1,21 +1,32 @@
+mod folder;
+mod json;
 mod linefile;
 mod notebook;
 mod page;
 mod render;
 
-use notebook::Notebook;
-use render::render_notebook;
+use crate::folder::parse_folders;
+use structopt::StructOpt;
+
+#[derive(StructOpt)]
+enum Subcommand {
+    Tree { path: String },
+}
 
 fn main() {
-    let input_path = std::env::args().nth(1).expect("no input path given");
-    let output_path = std::env::args().nth(2).expect("no output path given");
-    let notebook = Notebook::load(&input_path).expect("Failed to parse notebook");
-
-    println!(
-        "Exporting notebook '{}' to {}",
-        notebook.name(),
-        output_path
-    );
-
-    render_notebook(notebook, &output_path).expect("Failed to render notebook");
+    let command = Subcommand::from_args();
+    match command {
+        Subcommand::Tree { path } => match parse_folders(&path) {
+            Ok(folders) => {
+                for folder in folders {
+                    if let Some(metadata) = &folder.metadata {
+                        println!("{:?}", metadata.visible_name);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+            }
+        },
+    }
 }
