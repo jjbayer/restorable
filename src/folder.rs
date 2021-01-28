@@ -46,6 +46,17 @@ impl Node {
 
         None
     }
+
+    pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
+        self.walk_with_depth(0, f);
+    }
+
+    fn walk_with_depth<F: Fn(&Self, i32)>(&self, depth: i32, f: &F) {
+        f(self, depth);
+        for child in self.children.borrow().iter() {
+            child.walk_with_depth(depth + 1, f);
+        }
+    }
 }
 
 pub fn parse_folders(path: &str) -> Result<Vec<Rc<Node>>, Box<dyn Error>> {
