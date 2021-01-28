@@ -31,12 +31,25 @@ pub struct Metadata {
 
 #[derive(Default)]
 pub struct Node {
-    id: String,
+    pub id: String,
     pub metadata: Option<Metadata>,
     children: RefCell<Vec<Rc<Node>>>,
 }
 
 impl Node {
+    pub const ROOT_ID: &'static str = "root";
+
+    pub fn name(&self) -> &str {
+        match &self.metadata {
+            Some(metadata) => &metadata.visible_name,
+            None => "",
+        }
+    }
+
+    pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
+        self.walk_with_depth(0, f);
+    }
+
     fn parent_id(&self) -> Option<&str> {
         if let Some(metadata) = &self.metadata {
             if !metadata.parent.is_empty() {
@@ -47,10 +60,6 @@ impl Node {
         None
     }
 
-    pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
-        self.walk_with_depth(0, f);
-    }
-
     fn walk_with_depth<F: Fn(&Self, i32)>(&self, depth: i32, f: &F) {
         f(self, depth);
         for child in self.children.borrow().iter() {
@@ -59,7 +68,7 @@ impl Node {
     }
 }
 
-pub fn parse_nodes(path: &str) -> Result<Vec<Rc<Node>>, Box<dyn Error>> {
+pub fn parse_nodes(path: &str) -> Result<Node, Box<dyn Error>> {
     let directory = read_dir(path)?;
 
     let mut graph = GraphBuilder::new();
@@ -83,10 +92,16 @@ pub fn parse_nodes(path: &str) -> Result<Vec<Rc<Node>>, Box<dyn Error>> {
         }
     }
 
-    Ok(graph.get_root_nodes())
+    let root_nodes = graph.get_root_nodes();
+
+    Ok(Node {
+        id: Node::ROOT_ID.to_owned(),
+        metadata: None,
+        children: RefCell::new(root_nodes),
+    })
 }
 
-struct GraphBuilder {
+pub struct GraphBuilder {
     map: HashMap<String, Rc<Node>>,
 }
 

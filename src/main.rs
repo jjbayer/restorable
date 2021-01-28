@@ -5,7 +5,7 @@ mod notebook;
 mod page;
 mod render;
 
-use crate::node::parse_nodes;
+use crate::node::{parse_nodes, Node};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -17,22 +17,16 @@ fn main() {
     let command = Subcommand::from_args();
     match command {
         Subcommand::Tree { path } => match parse_nodes(&path) {
-            Ok(folders) => {
-                for folder in folders {
-                    folder.walk(&|node, depth| {
-                        for _ in 0..depth {
-                            print!("  ");
-                        }
-                        println!(
-                            "- {}",
-                            match &node.metadata {
-                                Some(m) => &m.visible_name,
-                                None => "<unnamed>",
-                            }
-                        );
-                    })
+            Ok(root_node) => root_node.walk(&|node, depth| {
+                if node.id == Node::ROOT_ID {
+                    println!("Documents:");
+                } else {
+                    for _ in 0..depth {
+                        print!("  ");
+                    }
+                    println!("- {}", node.name());
                 }
-            }
+            }),
             Err(e) => {
                 eprintln!("{}", e);
             }
