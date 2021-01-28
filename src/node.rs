@@ -59,7 +59,7 @@ impl Node {
     }
 }
 
-pub fn parse_folders(path: &str) -> Result<Vec<Rc<Node>>, Box<dyn Error>> {
+pub fn parse_nodes(path: &str) -> Result<Vec<Rc<Node>>, Box<dyn Error>> {
     let directory = read_dir(path)?;
 
     let mut graph = GraphBuilder::new();
