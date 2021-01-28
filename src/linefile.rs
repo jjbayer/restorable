@@ -1,5 +1,6 @@
 // See https://remarkablewiki.com/tech/filesystem
 
+use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
@@ -78,17 +79,92 @@ impl ParseFrom for Layer {
 }
 
 #[derive(Debug)]
+pub enum Pen {
+    // Copied from https://github.com/ax3l/lines-are-rusty/blob/develop/src/lib.rs
+    BallPoint,
+    Marker,
+    Fineliner,
+    SharpPencil,
+    TiltPencil,
+    Brush,
+    Highlighter,
+    Eraser,
+    EraseArea,
+    EraseAll,
+    Calligraphy,
+    Pen,
+    SelectionBrush,
+}
+
+impl TryFrom<u32> for Pen {
+    type Error = ParseError;
+
+    fn try_from(value: u32) -> Result<Pen, ParseError> {
+        // Copied from https://github.com/ax3l/lines-are-rusty/blob/develop/src/lib.rs
+        match value {
+            0 => Ok(Pen::Brush),
+            1 => Ok(Pen::TiltPencil),
+            2 => Ok(Pen::Pen),
+            3 => Ok(Pen::Marker),
+            4 => Ok(Pen::Fineliner),
+            5 => Ok(Pen::Highlighter),
+            6 => Ok(Pen::Eraser),
+            7 => Ok(Pen::SharpPencil),
+            8 => Ok(Pen::EraseArea),
+            9 => Ok(Pen::EraseAll),
+            10 => Ok(Pen::SelectionBrush),
+            11 => Ok(Pen::SelectionBrush),
+            12 => Ok(Pen::Brush),
+            13 => Ok(Pen::SharpPencil),
+            14 => Ok(Pen::TiltPencil),
+            15 => Ok(Pen::BallPoint),
+            16 => Ok(Pen::Marker),
+            17 => Ok(Pen::Fineliner),
+            18 => Ok(Pen::Highlighter),
+            21 => Ok(Pen::Calligraphy),
+            _ => Err(ParseError::new(&format!(
+                "Invalid value for Pen: {}",
+                value
+            ))),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Color {
+    Black,
+    Gray,
+    White,
+}
+
+impl TryFrom<u32> for Color {
+    type Error = ParseError;
+
+    fn try_from(value: u32) -> Result<Color, ParseError> {
+        match value {
+            0 => Ok(Color::Black),
+            1 => Ok(Color::Gray),
+            2 => Ok(Color::White),
+            _ => Err(ParseError::new(&format!(
+                "Invalid value for Color: {}",
+                value
+            ))),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Stroke {
-    pub pen: u32, // TODO: make enum
-    pub color: u32,
+    pub pen: Pen,
+    pub color: Color,
     pub width: f32,
     pub segments: Vec<Segment>,
 }
 
 impl ParseFrom for Stroke {
     fn parse_from(version: i32, bytes: &mut Bytes<BufReader<File>>) -> Result<Stroke, ParseError> {
-        let pen = parse_u32(bytes)?;
-        let color = parse_u32(bytes)?;
+        let pen = Pen::try_from(parse_u32(bytes)?)?;
+        let color = Color::try_from(parse_u32(bytes)?)?;
         discard_bytes(bytes, 4)?;
         let width = parse_f32(bytes)?;
         if version >= 5 {
@@ -110,10 +186,10 @@ pub struct Segment {
     // According to https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html
     pub x: f32,
     pub y: f32,
-    speed: f32,
-    direction: f32,
-    width: f32,
-    pressure: f32,
+    pub speed: f32,
+    pub direction: f32,
+    pub width: f32,
+    pub pressure: f32,
 }
 
 impl ParseFrom for Segment {
