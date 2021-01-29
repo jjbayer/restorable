@@ -61,8 +61,12 @@ impl Node {
         let mut parts = path.components();
         let name = parts.next()?;
         let child = self.get_child_by_name(name.as_os_str().to_str()?)?;
-
-        child.get_descendant_by_name(parts.as_path())
+        let rest_of_path = parts.as_path();
+        if rest_of_path.eq(Path::new("")) {
+            Some(child)
+        } else {
+            child.get_descendant_by_name(rest_of_path)
+        }
     }
 
     pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
