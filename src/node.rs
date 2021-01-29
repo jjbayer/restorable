@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::read_dir;
+use std::path::Path;
 use std::rc::Rc;
 
 use crate::json;
@@ -33,7 +34,7 @@ pub struct Metadata {
 pub struct Node {
     pub id: String,
     pub metadata: Option<Metadata>,
-    children: RefCell<Vec<Rc<Node>>>,
+    pub children: RefCell<Vec<Rc<Node>>>,
 }
 
 impl Node {
@@ -46,6 +47,14 @@ impl Node {
         }
     }
 
+    pub fn get_descendant_by_name(&self, path: &Path) -> Option<Rc<Node>> {
+        let mut parts = path.components();
+        let name = parts.next()?;
+        let child = self.get_child_by_name(name.as_os_str().to_str()?)?;
+
+        child.get_descendant_by_name(parts.as_path())
+    }
+
     pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
         self.walk_with_depth(0, f);
     }
@@ -54,6 +63,16 @@ impl Node {
         if let Some(metadata) = &self.metadata {
             if !metadata.parent.is_empty() {
                 return Some(&metadata.parent);
+            }
+        }
+
+        None
+    }
+
+    fn get_child_by_name(&self, name: &str) -> Option<Rc<Node>> {
+        for child in self.children.borrow().iter() {
+            if child.name() == name {
+                return Some(child.clone());
             }
         }
 
