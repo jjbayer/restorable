@@ -47,6 +47,16 @@ impl Node {
         }
     }
 
+    pub fn is_notebook(&self) -> bool {
+        match &self.metadata {
+            Some(metadata) => match &metadata.r#type {
+                NodeType::DocumentType => true,
+                _ => false,
+            },
+            None => false,
+        }
+    }
+
     pub fn get_descendant_by_name(&self, path: &Path) -> Option<Rc<Node>> {
         let mut parts = path.components();
         let name = parts.next()?;

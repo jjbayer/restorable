@@ -5,15 +5,24 @@ mod notebook;
 mod page;
 mod render;
 
-use crate::node::{parse_nodes, Node};
+use crate::node::parse_nodes;
+use crate::notebook::Notebook;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::path::Path;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 enum Command {
-    SetDir { path: String },
+    SetDir {
+        path: String,
+    },
     Tree,
+    Render {
+        notebook: PathBuf,
+        output_path: PathBuf,
+    },
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -51,6 +60,29 @@ fn run() -> Result<(), Box<dyn Error>> {
                 println!("- {}", node.name());
             });
         }
+        Command::Render {
+            notebook,
+            output_path,
+        } => {
+            check_configuration(&config)?;
+
+            let root_node = parse_nodes(&config.xochitl_dir)?;
+            match root_node.get_descendant_by_name(&notebook) {
+                None => {
+                    eprintln!("Cannot find document {:#?}", notebook)
+                }
+                Some(node) => {
+                    if node.is_notebook() {
+                        let filename = Path::join(&PathBuf::from(&config.xochitl_dir), &node.id);
+                        let filename = filename.to_str().unwrap();
+                        let notebook = Notebook::load(filename)?;
+                        render::render_notebook(notebook, output_path.to_str().unwrap())?;
+                    } else {
+                        eprintln!("Not a notebook: {:#?}", notebook);
+                    }
+                }
+            }
+        }
     }
 
     confy::store(APP_NAME, config)?;
@@ -63,12 +95,6 @@ fn check_configuration(config: &Config) -> Result<(), ConfigMissing> {
         Err(ConfigMissing {})
     } else {
         Ok(())
-    }
-}
-
-fn print_dir(parent: &Node) {
-    for child in parent.children.borrow().iter() {
-        println!("{}", child.name());
     }
 }
 
