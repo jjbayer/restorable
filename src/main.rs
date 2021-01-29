@@ -8,20 +8,17 @@ mod render;
 use crate::node::{parse_nodes, Node};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 enum Command {
     SetDir { path: String },
-    Ls,
-    Cd { rel_path: PathBuf },
+    Tree,
 }
 
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
     xochitl_dir: String,
-    current_folder: PathBuf,
 }
 
 const APP_NAME: &str = "restorable";
@@ -43,20 +40,16 @@ fn run() -> Result<(), Box<dyn Error>> {
         Command::SetDir { path } => {
             config.xochitl_dir = path;
         }
-        Command::Ls => {
+        Command::Tree => {
             check_configuration(&config)?;
 
             let root_node = parse_nodes(&config.xochitl_dir)?;
-            let descendant = root_node.get_descendant_by_name(&config.current_folder);
-
-            match descendant {
-                Some(node) => print_dir(&node),
-                None => print_dir(&root_node),
-            };
-        }
-        Command::Cd { rel_path } => {
-            check_configuration(&config)?;
-            config.current_folder.push(rel_path);
+            root_node.walk(&|node, depth| {
+                for _ in 0..depth {
+                    print!("  ");
+                }
+                println!("- {}", node.name());
+            });
         }
     }
 
