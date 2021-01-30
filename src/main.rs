@@ -5,8 +5,9 @@ mod notebook;
 mod page;
 mod render;
 
-use crate::node::{parse_nodes, NodeType};
+use crate::node::{parse_nodes, Node};
 use crate::notebook::Notebook;
+use crate::render::render_notebook;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::path::Path;
@@ -58,7 +59,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             let root_node = parse_nodes(&config.xochitl_dir)?;
             for child in root_node.children.borrow().iter() {
                 child.walk(&|node, ancestors| {
-                    for _ in 0..ancestors.len() {
+                    for _ in ancestors {
                         print!("  ");
                     }
                     println!("- {}", node.name());
@@ -76,37 +77,47 @@ fn run() -> Result<(), Box<dyn Error>> {
                 None => {
                     eprintln!("Cannot find document {:#?}", notebook)
                 }
-                Some(node) => {
-                    if node.is_notebook() {
-                        let filename = Path::join(&PathBuf::from(&config.xochitl_dir), &node.id);
-                        let filename = filename.to_str().unwrap();
-                        let notebook = Notebook::load(filename)?;
-                        render::render_notebook(notebook, output_path.to_str().unwrap())?;
-                    } else {
-                        eprintln!("Not a notebook: {:#?}", notebook);
-                    }
-                }
+                Some(node) => render(&config, &node, &output_path)?,
             }
         }
         Command::RenderAll { output_directory } => {
             check_configuration(&config)?;
-            let root_node = parse_nodes(&config.xochitl_dir)?;
-            for child in root_node.children.borrow().iter() {
-                child.walk(&|node, ancestors| match node.node_type() {
-                    NodeType::DocumentType => {
-                        let path: String = ancestors
-                            .iter()
-                            .map(|node| node.name())
-                            .fold("".to_string(), |acc, b| format!("{}/{}", acc, b));
-                        println!(
-                            "{} - {}{}",
-                            node.id,
-                            output_directory.to_str().unwrap(),
-                            path
-                        );
-                    }
-                    _ => {}
-                });
+            match output_directory.canonicalize() {
+                Err(_) => eprintln!("Directory does not exist: {:#?}", output_directory),
+                Ok(output_directory) => {
+                    let root_node = parse_nodes(&config.xochitl_dir)?;
+                    root_node.walk(&|node, ancestors| {
+                        if node.is_notebook() {
+                            let mut full_path = output_directory.clone();
+                            for node in ancestors {
+                                full_path.push(node.name());
+                            }
+                            match full_path.extension() {
+                                Some(_) => {
+                                    // Nothing to do, already a rendered file.
+                                }
+                                None => {
+                                    full_path.set_extension("pdf");
+                                    if let Some(parent) = full_path.parent() {
+                                        match std::fs::create_dir_all(parent) {
+                                            Err(_) => eprintln!(
+                                                "WARNING: Failed to create directory {:#?}",
+                                                parent
+                                            ),
+                                            Ok(_) => match render(&config, &node, &full_path) {
+                                                Err(_) => eprintln!(
+                                                    "WARNING: Failed to render notebook '{}'",
+                                                    node.name()
+                                                ),
+                                                Ok(_) => {}
+                                            },
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
             }
         }
     }
@@ -122,6 +133,20 @@ fn check_configuration(config: &Config) -> Result<(), ConfigMissing> {
     } else {
         Ok(())
     }
+}
+
+fn render(config: &Config, node: &Node, output_path: &Path) -> Result<(), Box<dyn Error>> {
+    if node.is_notebook() {
+        let filename = Path::join(&PathBuf::from(&config.xochitl_dir), &node.id);
+        let filename = filename.to_str().unwrap();
+        let notebook = Notebook::load(filename)?;
+        println!("Rendering notebook {}...", node.name());
+        render_notebook(notebook, output_path.to_str().unwrap())?;
+    } else {
+        eprintln!("Not a notebook: {:#?}", node.name());
+    }
+
+    Ok(())
 }
 
 #[derive(Debug)]
