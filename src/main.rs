@@ -19,9 +19,12 @@ enum Command {
         path: String,
     },
     Tree,
-    Render {
+    RenderNotebook {
         notebook: PathBuf,
         output_path: PathBuf,
+    },
+    RenderAll {
+        output_directory: PathBuf,
     },
 }
 
@@ -53,14 +56,16 @@ fn run() -> Result<(), Box<dyn Error>> {
             check_configuration(&config)?;
 
             let root_node = parse_nodes(&config.xochitl_dir)?;
-            root_node.walk(&|node, depth| {
-                for _ in 0..depth {
-                    print!("  ");
-                }
-                println!("- {}", node.name());
-            });
+            for child in root_node.children.borrow().iter() {
+                child.walk(&|node, ancestors| {
+                    for _ in 0..ancestors.len() {
+                        print!("  ");
+                    }
+                    println!("- {}", node.name());
+                });
+            }
         }
-        Command::Render {
+        Command::RenderNotebook {
             notebook,
             output_path,
         } => {
@@ -82,6 +87,11 @@ fn run() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+        }
+        Command::RenderAll { output_directory } => {
+            check_configuration(&config)?;
+            let root_node = parse_nodes(&config.xochitl_dir)?;
+            panic!("Not implemented");
         }
     }
 

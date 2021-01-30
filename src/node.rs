@@ -69,8 +69,23 @@ impl Node {
         }
     }
 
-    pub fn walk<F: Fn(&Self, i32)>(&self, f: &F) {
-        self.walk_with_depth(0, f);
+    pub fn walk<F: Fn(&Self, &Vec<Rc<Node>>)>(&self, f: &F) {
+        let mut ancestors = vec![];
+        self.walk_with_ancestors(&mut ancestors, f);
+    }
+
+    fn walk_with_ancestors<F: Fn(&Self, &Vec<Rc<Node>>)>(
+        &self,
+        ancestors: &mut Vec<Rc<Node>>,
+        f: &F,
+    ) {
+        f(self, ancestors);
+        let children = self.children.borrow();
+        for child in children.iter() {
+            ancestors.push(child.clone());
+            child.walk_with_ancestors(ancestors, f);
+            ancestors.pop();
+        }
     }
 
     fn parent_id(&self) -> Option<&str> {
@@ -91,13 +106,6 @@ impl Node {
         }
 
         None
-    }
-
-    fn walk_with_depth<F: Fn(&Self, i32)>(&self, depth: i32, f: &F) {
-        f(self, depth);
-        for child in self.children.borrow().iter() {
-            child.walk_with_depth(depth + 1, f);
-        }
     }
 }
 
