@@ -5,7 +5,7 @@ mod notebook;
 mod page;
 mod render;
 
-use crate::node::parse_nodes;
+use crate::node::{parse_nodes, NodeType};
 use crate::notebook::Notebook;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -91,7 +91,23 @@ fn run() -> Result<(), Box<dyn Error>> {
         Command::RenderAll { output_directory } => {
             check_configuration(&config)?;
             let root_node = parse_nodes(&config.xochitl_dir)?;
-            panic!("Not implemented");
+            for child in root_node.children.borrow().iter() {
+                child.walk(&|node, ancestors| match node.node_type() {
+                    NodeType::DocumentType => {
+                        let path: String = ancestors
+                            .iter()
+                            .map(|node| node.name())
+                            .fold("".to_string(), |acc, b| format!("{}/{}", acc, b));
+                        println!(
+                            "{} - {}{}",
+                            node.id,
+                            output_directory.to_str().unwrap(),
+                            path
+                        );
+                    }
+                    _ => {}
+                });
+            }
         }
     }
 

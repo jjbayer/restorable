@@ -47,6 +47,13 @@ impl Node {
         }
     }
 
+    pub fn node_type(&self) -> NodeType {
+        match &self.metadata {
+            None => NodeType::CollectionType,
+            Some(m) => m.r#type.clone(),
+        }
+    }
+
     pub fn is_notebook(&self) -> bool {
         match &self.metadata {
             Some(metadata) => match &metadata.r#type {
