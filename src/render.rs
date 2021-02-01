@@ -74,7 +74,8 @@ pub fn render_stroke(stroke: Stroke, canvas: &mut skia::Canvas) -> Result<(), st
 
 fn color(stroke: &Stroke) -> skia::Color {
     match stroke.pen {
-        Pen::Highlighter => skia::Color::from_rgb(255, 255, 0),
+        Pen::Highlighter => skia::Color::from_argb(128, 255, 255, 0),
+        Pen::Eraser => skia::Color::WHITE,
         _ => match stroke.color {
             Color::Black => skia::Color::BLACK,
             Color::Gray => skia::Color::GRAY,
@@ -96,6 +97,7 @@ fn pen_scale(pen: &Pen) -> f32 {
         Pen::PaintBrush => 2.5,
         Pen::Pencil => 2.0,
         Pen::Highlighter => 5.0,
+        Pen::Eraser => 4.0,
         _ => 1.0,
     }
 }
