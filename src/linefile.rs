@@ -80,13 +80,13 @@ impl ParseFrom for Layer {
 
 #[derive(Debug)]
 pub enum Pen {
-    // Copied from https://github.com/ax3l/lines-are-rusty/blob/develop/src/lib.rs
+    // Based on https://github.com/ax3l/lines-are-rusty/blob/develop/src/lib.rs
     BallPoint,
     Marker,
     Fineliner,
-    SharpPencil,
-    TiltPencil,
-    Brush,
+    Pencil,
+    MechanicalPencil,
+    PaintBrush,
     Highlighter,
     Eraser,
     EraseArea,
@@ -102,21 +102,21 @@ impl TryFrom<u32> for Pen {
     fn try_from(value: u32) -> Result<Pen, ParseError> {
         // Copied from https://github.com/ax3l/lines-are-rusty/blob/develop/src/lib.rs
         match value {
-            0 => Ok(Pen::Brush),
-            1 => Ok(Pen::TiltPencil),
+            0 => Ok(Pen::PaintBrush),
+            1 => Ok(Pen::Pencil),
             2 => Ok(Pen::Pen),
             3 => Ok(Pen::Marker),
             4 => Ok(Pen::Fineliner),
             5 => Ok(Pen::Highlighter),
             6 => Ok(Pen::Eraser),
-            7 => Ok(Pen::SharpPencil),
+            7 => Ok(Pen::MechanicalPencil),
             8 => Ok(Pen::EraseArea),
             9 => Ok(Pen::EraseAll),
             10 => Ok(Pen::SelectionBrush),
             11 => Ok(Pen::SelectionBrush),
-            12 => Ok(Pen::Brush),
-            13 => Ok(Pen::SharpPencil),
-            14 => Ok(Pen::TiltPencil),
+            12 => Ok(Pen::PaintBrush),
+            13 => Ok(Pen::MechanicalPencil),
+            14 => Ok(Pen::Pencil),
             15 => Ok(Pen::BallPoint),
             16 => Ok(Pen::Marker),
             17 => Ok(Pen::Fineliner),
