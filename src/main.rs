@@ -10,6 +10,7 @@ use crate::notebook::Notebook;
 use crate::render::render_notebook;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -140,8 +141,11 @@ fn render(config: &Config, node: &Node, output_path: &Path) -> Result<(), Box<dy
         let filename = Path::join(&PathBuf::from(&config.xochitl_dir), &node.id);
         let filename = filename.to_str().unwrap();
         let notebook = Notebook::load(filename)?;
+
+        let mut file = File::create(output_path)?;
+
         println!("Rendering notebook {}...", node.name());
-        render_notebook(notebook, output_path.to_str().unwrap())?;
+        render_notebook(notebook, &mut file)?;
     } else {
         eprintln!("Not a notebook: {:#?}", node.name());
     }
