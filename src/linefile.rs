@@ -299,7 +299,7 @@ fn parse_string(bytes: &mut Bytes<BufReader<File>>, count: i32) -> Result<String
 }
 
 fn parse_u32(bytes: &mut Bytes<BufReader<File>>) -> Result<u32, ParseError> {
-    let mut buffer: [u32; 4] = [0; 4];
+    let mut buffer: [u8; 4] = [0; 4];
 
     for i in 0..4 {
         match bytes.next() {
@@ -307,13 +307,13 @@ fn parse_u32(bytes: &mut Bytes<BufReader<File>>) -> Result<u32, ParseError> {
                 return Err(ParseError::new("Unexpected end of file while parsing u32"));
             }
             Some(byte) => {
-                buffer[i] = byte? as u32;
+                buffer[i] = byte?;
             }
         }
     }
 
     // Little-endian
-    Ok(buffer[0] + (buffer[1] << 8) + (buffer[2] << 16) + (buffer[3] << 24))
+    Ok(u32::from_le_bytes(buffer))
 }
 
 fn parse_f32(bytes: &mut Bytes<BufReader<File>>) -> Result<f32, ParseError> {
