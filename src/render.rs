@@ -4,8 +4,6 @@ use crate::page::Page;
 use skia_safe as skia;
 use std::io::Write;
 
-const BASE_STROKE_WIDTH: f32 = 4.0;
-
 pub fn render_notebook<Output: Write>(
     notebook: Notebook,
     output: &mut Output,
