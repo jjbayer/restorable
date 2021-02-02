@@ -1,18 +1,12 @@
-# Copied from https://github.com/actions/create-release
-name: Prepare Release
-on:
-  push:
-    tags:
-      - 'v*'
+name: Release
+on: push  # on any push
+    
 jobs:
-  build:
+  create_release:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
       - name: Create Release
-        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -21,3 +15,47 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
+  
+  upload_assets:
+    name: Build and upload assets for ${{ matrix.os }}
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        name: [
+            linux,
+            windows,
+            macos
+        ]
+        include:
+          - name: linux
+            os: ubuntu-latest
+            artifact_name: target/release/restorable
+            asset_name: restorable-linux
+          - name: windows
+            os: windows-latest
+            artifact_name: target/release/restorable.exe
+            asset_name: restorable-windows
+          - name: macos
+            os: macos-latest
+            artifact_name: target/release/restorable
+            asset_name: restorable-macos
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Build
+      run: cargo build --release --locked
+
+    - name: Upload binaries to release
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ needs.event.create_release.outputs.upload_url }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_path: ${{ matrix.artifact_name }}
+        asset_content_type: application/octet-stream
