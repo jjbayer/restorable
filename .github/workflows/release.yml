@@ -1,5 +1,9 @@
 name: Release
-on: push  # on any push
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
     
 jobs:
   create_release:
@@ -7,14 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create Release
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ github. }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
   
   upload_assets:
     name: Build and upload assets for ${{ matrix.os }}
@@ -30,15 +37,15 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
-            artifact_name: target/release/restorable
+            artifact_name: ./target/release/restorable
             asset_name: restorable-linux
           - name: windows
             os: windows-latest
-            artifact_name: target/release/restorable.exe
+            artifact_name: ./target/release/restorable.exe
             asset_name: restorable-windows
           - name: macos
             os: macos-latest
-            artifact_name: target/release/restorable
+            artifact_name: ./target/release/restorable
             asset_name: restorable-macos
 
     steps:
