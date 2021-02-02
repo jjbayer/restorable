@@ -1,14 +1,10 @@
-# Copied from https://daniellockyer.com/automated-rust-releases/
-name: Publish
-
+name: Upload release assets
 on:
-  push:
-    tags:
-      - '*'
-
+  release:
+    types: [published]
 jobs:
-  publish:
-    name: Publish for ${{ matrix.os }}
+  upload_assets:
+    name: Build and upload assets for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -17,7 +13,6 @@ jobs:
             windows,
             macos
         ]
-
         include:
           - name: linux
             os: ubuntu-latest
@@ -44,7 +39,9 @@ jobs:
       run: cargo build --release --locked
 
     - name: Upload binaries to release
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-release-asset@v1
       with:
-        name: ${{ matrix.asset_name }}
-        path: ${{ matrix.artifact_name }}
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_path: ${{ matrix.artifact_name }}
+        asset_content_type: application/octet-stream
