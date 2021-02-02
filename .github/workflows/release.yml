@@ -55,7 +55,7 @@ jobs:
     - name: Upload binaries to release
       uses: actions/upload-release-asset@v1
       with:
-        upload_url: ${{ needs.event.create_release.outputs.upload_url }}
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
         asset_name: ${{ matrix.asset_name }}
         asset_path: ${{ matrix.artifact_name }}
         asset_content_type: application/octet-stream
