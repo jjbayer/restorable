@@ -1,7 +1,7 @@
 name: Upload release assets
 on:
   release:
-    types: [published]
+    types: [created]
 jobs:
   upload_assets:
     name: Build and upload assets for ${{ matrix.os }}
